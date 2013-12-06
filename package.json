@@ -1,0 +1,24 @@
+{
+  "name": "jade-l10n",
+  "version": "0.0.3",
+  "author": {
+    "name": "Vahe Hovhannisyan @vhpoet"
+  },
+  "description": "Jade Internationalization",
+  "dependencies": {
+    "jade": "~0.28.0",
+    "po2json": ""
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
+    }
+  ],
+  "readme": "Jade Internationalization",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/vhpoet/jade-l10n.git"
+  }
+}
