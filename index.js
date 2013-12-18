@@ -5,13 +5,14 @@
 var jade = require('jade'),
     jadeCompiler = jade.Compiler,
     jadeCompile = jade.compile,
+    jadeNodes = jade.nodes,
     po2json = require('po2json');
 
 /**
-* Compiler constructor
-*
-* @api public
-*/
+ * Compiler constructor
+ *
+ * @api public
+ */
 
 var Compiler = function (node, options) {
   jadeCompiler.call(this, node, options);
@@ -21,25 +22,39 @@ var Compiler = function (node, options) {
 };
 
 /**
-* Inherits from Compiler.
-*/
+ * Inherits from Compiler.
+ */
 
 Compiler.prototype.__proto__ = jadeCompiler.prototype;
 
 /**
-* Visit `node`.
-*
-* @param {Node} node
-* @api public
-*/
+ * Visit `node`.
+ *
+ * @param {Node} node
+ * @api public
+ */
 
 Compiler.prototype.visitNode = function (node) {
   if(this.jsonData && node.getAttribute && undefined !== node.getAttribute('l10n')) {
+
     var elm = node.block.nodes[0];
     var attr = node.getAttribute('l10n');
+    var subNodes = {};
+
+    // Included translatable elements
+    var counter = 1;
+    node.block.nodes.forEach(function(node){
+      if (node.name) {
+        subNodes[counter] = node;
+        counter++;
+      }
+    });
 
     // Apply translation
     if (elm) {
+      if (elm.val)
+        var val = parseText(node).replace(/&#32;/g,' ');
+
       // Get translation by attribute
       if (typeof attr == 'string') {
         attr = attr.replace(/^['"]|['"]$/g, '');
@@ -50,8 +65,31 @@ Compiler.prototype.visitNode = function (node) {
       }
 
       // Get translation by text
-      else if (undefined !== this.jsonData[elm.val] && this.jsonData[elm.val][1]) {
-        elm.val = this.jsonData[elm.val][1];
+      else if (undefined !== this.jsonData[val] && this.jsonData[val][1]) {
+        var blocks = this.jsonData[val][1].match(/(\{\{[0-9]+\}\})|(\{\{[0-9]+:.+?\}\})|(((?!\{\{[0-9]+).)*)/g);
+
+        node.block.nodes = [];
+
+        for (index = 0; index < blocks.length; ++index) {
+
+          // Identify node blocks
+          var simpleSub = /\{\{([0-9]+)\}\}/g.exec(blocks[index]);
+          var translatableSub = /\{\{([0-9]+):(.+)\}\}/g.exec(blocks[index]);
+
+          if (simpleSub || translatableSub) {
+            var subNode = subNodes[simpleSub[1] ? simpleSub[1] : translatableSub[1]];
+
+            if (subNode) {
+              if (translatableSub) {
+                subNode.block.nodes[0].val = translatableSub[2];
+              }
+
+              node.block.nodes.push(subNode);
+            }
+          } else {
+            node.block.nodes.push(new jadeNodes.Text(blocks[index]));
+          }
+        }
       }
     }
 
@@ -74,5 +112,52 @@ jade.compile = function (str, options) {
 
   return jadeCompile.call(this, str, options);
 };
+
+function parseText(node)
+{
+  var textPieces = [], counter = 1;
+
+  node.block.nodes.forEach(function (node) {
+    var nodeText = '';
+    if (node.name) {
+      var alias = String(counter++), content = '';
+      node.attrs && node.attrs.forEach(function (attr) {
+        if (attr.name === "l10n-inc") {
+          content = ":"+parseText(node);
+        }
+      });
+
+      if (node.block.nodes[0] && node.block.nodes[0].val
+          && 0 === node.block.nodes[0].val.indexOf(" ")) {
+        nodeText += " ";
+      }
+
+      nodeText += "{{";
+      nodeText += alias;
+      nodeText += content;
+      nodeText += "}}";
+      textPieces.push(nodeText);
+    } else if ("string" === typeof node.val) {
+      textPieces.push(node.val);
+    }
+  });
+
+  return escapeString(textPieces.join(''));
+}
+
+function escapeString(str) {
+  // http://kevin.vanzonneveld.net
+  // +   original by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+  // +   improved by: Ates Goral (http://magnetiq.com)
+  // +   improved by: marrtins
+  // +   improved by: Nate
+  // +   improved by: Onno Marsman
+  // +   input by: Denny Wardhana
+  // +   improved by: Brett Zamir (http://brett-zamir.me)
+  // +   improved by: Oskar Larsson Högfeldt (http://oskar-lh.name/)
+  // *     example 1: addslashes("kevin's birthday");
+  // *     returns 1: 'kevin\'s birthday'
+  return (str + '').replace(/[\\"]/g, '\\$&').replace(/\u0000/g, '\\0');
+}
 
 module.exports = jade;
