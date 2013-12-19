@@ -1,12 +1,12 @@
 {
   "name": "jade-l10n",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Vahe Hovhannisyan @vhpoet"
   },
   "description": "Jade Internationalization",
   "dependencies": {
-    "jade": "~0.28.0",
+    "jade": "~0.28.x",
     "po2json": ""
   },
   "licenses": [
