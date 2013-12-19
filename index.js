@@ -77,7 +77,7 @@ Compiler.prototype.visitNode = function (node) {
           var translatableSub = /\{\{([0-9]+):(.+)\}\}/g.exec(blocks[index]);
 
           if (simpleSub || translatableSub) {
-            var subNode = subNodes[simpleSub[1] ? simpleSub[1] : translatableSub[1]];
+            var subNode = subNodes[simpleSub ? simpleSub[1] : translatableSub[1]];
 
             if (subNode) {
               if (translatableSub) {
