@@ -71,23 +71,24 @@ Compiler.prototype.visitNode = function (node) {
         node.block.nodes = [];
 
         for (index = 0; index < blocks.length; ++index) {
+          if (blocks[index]) {
+            // Identify node blocks
+            var simpleSub = /\{\{([0-9]+)\}\}/g.exec(blocks[index]);
+            var translatableSub = /\{\{([0-9]+):(.+)\}\}/g.exec(blocks[index]);
 
-          // Identify node blocks
-          var simpleSub = /\{\{([0-9]+)\}\}/g.exec(blocks[index]);
-          var translatableSub = /\{\{([0-9]+):(.+)\}\}/g.exec(blocks[index]);
+            if (simpleSub || translatableSub) {
+              var subNode = subNodes[simpleSub ? simpleSub[1] : translatableSub[1]];
 
-          if (simpleSub || translatableSub) {
-            var subNode = subNodes[simpleSub ? simpleSub[1] : translatableSub[1]];
+              if (subNode) {
+                if (translatableSub) {
+                  subNode.block.nodes[0].val = translatableSub[2];
+                }
 
-            if (subNode) {
-              if (translatableSub) {
-                subNode.block.nodes[0].val = translatableSub[2];
+                node.block.nodes.push(subNode);
               }
-
-              node.block.nodes.push(subNode);
+            } else {
+              node.block.nodes.push(new jadeNodes.Text(blocks[index]));
             }
-          } else {
-            node.block.nodes.push(new jadeNodes.Text(blocks[index]));
           }
         }
       }
