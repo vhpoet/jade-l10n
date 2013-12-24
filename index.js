@@ -53,7 +53,7 @@ Compiler.prototype.visitNode = function (node) {
     // Apply translation
     if (elm) {
       if (elm.val)
-        var val = parseText(node).replace(/&#32;/g,' ');
+        var val = parseText(node).replace(/&#32;/g,' ').trim();
 
       // Get translation by attribute
       if (typeof attr == 'string') {
