@@ -37,69 +37,71 @@ Compiler.prototype.__proto__ = jadeCompiler.prototype;
 Compiler.prototype.visitNode = function (node) {
   var _this = this;
 
-  if(_this.jsonData && node.getAttribute)
+  if(node.getAttribute)
   {
-    // Translatable blocks
-    if (undefined !== node.getAttribute('l10n')) {
-      var elm = node.block.nodes[0];
-      var attr = node.getAttribute('l10n');
-      var subNodes = {};
+    if (_this.jsonData) {
+      // Translatable blocks
+      if (undefined !== node.getAttribute('l10n')) {
+        var elm = node.block.nodes[0];
+        var attr = node.getAttribute('l10n');
+        var subNodes = {};
 
-      // Included translatable elements
-      var counter = 1;
-      node.block.nodes.forEach(function(node){
-        if (node.name) {
-          subNodes[counter] = node;
-          counter++;
-        }
-      });
-
-      // Apply translation
-      if (elm) {
-        if (elm.val)
-          var val = parseText(node).replace(/&#32;/g,' ').trim();
-
-        // Get translation by attribute
-        if (typeof attr == 'string') {
-          attr = attr.replace(/^['"]|['"]$/g, '');
-
-          if (undefined !== _this.jsonData[attr] && _this.jsonData[attr][1]) {
-            elm.val = _this.jsonData[attr][1];
+        // Included translatable elements
+        var counter = 1;
+        node.block.nodes.forEach(function(node){
+          if (node.name) {
+            subNodes[counter] = node;
+            counter++;
           }
-        }
+        });
 
-        // Get translation by text
-        else if (undefined !== _this.jsonData[val] && _this.jsonData[val][1]) {
-          var blocks = _this.jsonData[val][1].match(/(\{\{[0-9]+\}\})|(\{\{[0-9]+:.+?\}\})|(((?!\{\{[0-9]+).)*)/g);
+        // Apply translation
+        if (elm) {
+          if (elm.val)
+            var val = parseText(node).replace(/&#32;/g,' ').trim();
 
-          node.block.nodes = [];
+          // Get translation by attribute
+          if (typeof attr == 'string') {
+            attr = attr.replace(/^['"]|['"]$/g, '');
 
-          for (index = 0; index < blocks.length; ++index) {
-            if (blocks[index]) {
-              // Identify node blocks
-              var simpleSub = /\{\{([0-9]+)\}\}/g.exec(blocks[index]);
-              var translatableSub = /\{\{([0-9]+):(.+)\}\}/g.exec(blocks[index]);
+            if (undefined !== _this.jsonData[attr] && _this.jsonData[attr][1]) {
+              elm.val = _this.jsonData[attr][1];
+            }
+          }
 
-              if (simpleSub || translatableSub) {
-                var subNode = subNodes[simpleSub ? simpleSub[1] : translatableSub[1]];
+          // Get translation by text
+          else if (undefined !== _this.jsonData[val] && _this.jsonData[val][1]) {
+            var blocks = _this.jsonData[val][1].match(/(\{\{[0-9]+\}\})|(\{\{[0-9]+:.+?\}\})|(((?!\{\{[0-9]+).)*)/g);
 
-                if (subNode) {
-                  if (translatableSub) {
-                    subNode.block.nodes[0].val = translatableSub[2];
+            node.block.nodes = [];
+
+            for (index = 0; index < blocks.length; ++index) {
+              if (blocks[index]) {
+                // Identify node blocks
+                var simpleSub = /\{\{([0-9]+)\}\}/g.exec(blocks[index]);
+                var translatableSub = /\{\{([0-9]+):(.+)\}\}/g.exec(blocks[index]);
+
+                if (simpleSub || translatableSub) {
+                  var subNode = subNodes[simpleSub ? simpleSub[1] : translatableSub[1]];
+
+                  if (subNode) {
+                    if (translatableSub) {
+                      subNode.block.nodes[0].val = translatableSub[2];
+                    }
+
+                    node.block.nodes.push(subNode);
                   }
-
-                  node.block.nodes.push(subNode);
+                } else {
+                  node.block.nodes.push(new jadeNodes.Text(blocks[index]));
                 }
-              } else {
-                node.block.nodes.push(new jadeNodes.Text(blocks[index]));
               }
             }
           }
         }
-      }
 
-      // Remove l10n attribute
-      node.removeAttribute('l10n');
+        // Remove l10n attribute
+        node.removeAttribute('l10n');
+      }
     }
 
     // Translatable attributes
@@ -107,13 +109,15 @@ Compiler.prototype.visitNode = function (node) {
       var translatableTag = /l10n-([-a-zA-Z0-9]*)/g.exec(attr.name);
 
       if (translatableTag && translatableTag[1] !== 'inc') {
-        var translation = _this.jsonData[attr.escaped ? JSON.parse(attr.val) : attr.val];
+        if (_this.jsonData) {
+          var translation = _this.jsonData[attr.escaped ? JSON.parse(attr.val) : attr.val];
+
+          if (translation) {
+            attr.val = '"' + translation[1] + '"';
+          }
+        }
 
         attr.name = /l10n-([-a-zA-Z0-9]*)/g.exec(attr.name)[1];
-
-        if (translation) {
-          attr.val = '"' + translation[1] + '"';
-        }
       }
     });
   }
